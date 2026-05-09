@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Add Song - Jukebox</title>
+
+    <style>
+        /*Same dark theme as TV screen */
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+            margin-top: 120px;
+        }
+
+        /*Title styling */
+        h1 {
+            font-size: 50px;
+            color: #00ffcc;
+        }
+
+        /*Input box styling */
+        input {
+            font-size: 25px;
+            padding: 12px;
+            width: 300px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+        }
+
+        /*Button styling */
+        button {
+            font-size: 25px;
+            padding: 12px 20px;
+            margin-left: 10px;
+            border-radius: 10px;
+            border: none;
+            background-color: #ffcc00;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ffaa00;
+        }
+
+        /*small helper text */
+        p {
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- Page title -->
+    <h1>Add a Song</h1>
+
+    <!--Song input form -->
+    <form action="/add" method="get">
+
+        <!-- user types song name here -->
+        <input type="text" name="song" placeholder="Enter song name" required>
+
+        <!-- submit button -->
+        <button type="submit">Add</button>
+
+    </form>
+
+    <!-- hint text -->
+    <p><a href="/queue" style="color:#00ffcc;">View Queue</a></p>
+    <p>Scan QR or open this page to add songs to the queue</p>
+
+</body>
+
+</html>
