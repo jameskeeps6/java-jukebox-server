@@ -2,3 +2,4 @@ target/
 *.class
 .env
 .DS_Store
+QRCode.png

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Queue</title>
+
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #d62828;
+            margin-bottom: 20px;
+        }
+
+        img {
+            margin-top: 10px;
+            border-radius: 10px;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            margin: 15px auto;
+            padding: 15px;
+        }
+
+        #currentSong {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #queueList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+
+        #queueList li {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <div>Scan to Join</div>
+        <img id="qr" src="/qr" width="200" height="200" />
+    </div>
+
+    <div class="card">
+        <div>Now Playing</div>
+        <div id="currentSong">Nothing</div>
+        <img id="albumArt" width="200">
+    </div>
+
+    <div class="card">
+        <div>Up Next</div>
+        <ul id="queueList"></ul>
+    </div>
+
+<script>
+
+let token = null;
+
+/* ================= GET TOKEN FROM SERVER ================= */
+fetch('/token')
+    .then(r => r.text())
+    .then(t => {
+        token = t ? t.trim() : null;
+    });
+
+/* ================= NOW PLAYING FROM SPOTIFY ================= */
+async function updateNowPlaying() {
+    if (!token) return;
+
+    try {
+        const res = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if (res.status === 204) {
+            document.getElementById("currentSong").innerText = "Nothing";
+            return;
+        }
+
+        const data = await res.json();
+
+        if (!data || !data.item) {
+            document.getElementById("currentSong").innerText = "Nothing";
+            return;
+        }
+
+        const song = data.item.name;
+        const artist = data.item.artists.map(a => a.name).join(", ");
+
+        document.getElementById("currentSong").innerText = song + " - " + artist;
+
+        const img = data.item.album.images[0].url;
+        document.getElementById("albumArt").src = img;
+
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/* ================= QUEUE FROM YOUR SERVER ================= */
+async function loadSongs() {
+    try {
+        const data = await fetch("/songs").then(r => r.json());
+        const list = document.getElementById("queueList");
+
+        list.innerHTML = "";
+
+        data.forEach(song => {
+            const li = document.createElement("li");
+            li.textContent = song.name + " - " + song.artist;
+            list.appendChild(li);
+        });
+
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/* ================= LOOPS ================= */
+setInterval(loadSongs, 3000);
+setInterval(updateNowPlaying, 2000);
+
+</script>
+
+</body>
+</html>

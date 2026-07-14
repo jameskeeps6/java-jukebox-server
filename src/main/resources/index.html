@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Jukebox Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0c0c0e;
+            --card-bg: #18181c;
+            --spotify-green: #1DB954;
+            --text-main: #ffffff;
+            --text-muted: #a7a7a7;
+            --border-color: #292932;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 0%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            text-align: center;
+        }
+
+        .card:hover {
+            border-color: #3e3e4d;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* QR Code Container Styling */
+        .qr-card {
+            cursor: pointer;
+            background: linear-gradient(145deg, #18181c 0%, #111115 100%);
+        }
+
+        .qr-card img {
+            border-radius: 12px;
+            background: white;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            margin: 10px 0;
+        }
+
+        .qr-hint {
+            font-size: 0.8rem;
+            color: var(--spotify-green);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Now Playing Element Styling */
+        #currentSong {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--spotify-green);
+            margin-top: 8px;
+            letter-spacing: -0.02em;
+            word-wrap: break-word;
+        }
+
+        /* Queue List Styling */
+        #queueList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+
+        #queueList li {
+            padding: 14px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        #queueList li:last-child {
+            border-bottom: none;
+        }
+
+        #queueList li::before {
+            content: "•";
+            color: var(--text-muted);
+            margin-right: 12px;
+            font-size: 1.2rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Jukebox Player Room</h1>
+
+    <div class="container">
+        <div class="card qr-card" onclick="console.log('Page clicked - Browser Audio Context Unlocked!')">
+            <div class="card-title">Scan to Join Party</div>
+            <img src="/qr" width="180" alt="QR Code">
+        </div>
+
+        <div class="card">
+            <div class="card-title">Now Playing</div>
+            <div id="currentSong"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Up Next</div>
+            <ul id="queueList"></ul>
+        </div>
+    </div>
+
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+
+    <script>
+        /* ================= SPOTIFY WEB PLAYBACK SDK ================= */
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            fetch('/token')
+                .then(res => res.text())
+                .then(accessToken => {
+                    if (!accessToken || accessToken === "NO_TOKEN_AVAILABLE") {
+                        console.error("SDK Error: No token available from Java server.");
+                        return;
+                    }
+
+                    const player = new Spotify.Player({
+                        name: 'Jukebox Index Player',
+                        getOAuthToken: cb => { cb(accessToken.trim()); },
+                        volume: 0.5
+                    });
+
+                    player.addListener('ready', ({ device_id }) => {
+
+                        console.log(
+                            'Jukebox Device Is Ready! ID:',
+                            device_id
+                        );
+
+                        fetch("/device?id=" + device_id);
+
+                        // Activate this Web Playback SDK device
+                        fetch("https://api.spotify.com/v1/me/player", {
+                            method: "PUT",
+                            headers: {
+                                "Authorization": "Bearer " + accessToken,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                device_ids: [device_id],
+                                play: false
+                            })
+                        }).then(response => {
+                            console.log("Activate player status:", response.status);
+                        });
+                    });
+
+                    player.addListener('not_ready', ({ device_id }) => {
+                        console.log('Jukebox Device went offline:', device_id);
+                    });
+
+                    player.addListener('initialization_error', ({ message }) => console.error("Initialization Error:", message));
+                    player.addListener('authentication_error', ({ message }) => console.error("Authentication Error:", message));
+                    player.addListener('account_error', ({ message }) => console.error("Account Error (Premium Check):", message));
+                    player.addListener('playback_error', ({ message }) => console.error("Playback Error:", message));
+
+                    player.connect().then(success => {
+                        if (success) {
+                            console.log('Jukebox virtual speaker connected to Spotify cloud!');
+                        }
+                    });
+                })
+                .catch(err => console.error("Failed fetching configuration token:", err));
+        };
+
+        /* ================= UPDATE NOW PLAYING ================= */
+        async function updateNowPlaying() {
+            try {
+                // Fetch from YOUR Java server instead of Spotify directly
+                const res = await fetch("/now-playing");
+
+                if (res.status === 204) {
+                    document.getElementById("currentSong").innerText = "Nothing currently playing";
+                    return;
+                }
+
+                if (res.status === 200) {
+                    const data = await res.json();
+                    document.getElementById("currentSong").innerHTML = `
+    <img 
+        src="${data.image}"
+        width="150"
+        style="border-radius:12px;"
+    >
+    <br>
+    ${data.name}
+    <br>
+    <small>${data.artist}</small>
+`;
+                } else {
+                    document.getElementById("currentSong").innerText = "Server not authenticated with Spotify";
+                }
+
+            } catch (e) {
+                console.error("[NOW PLAYING ERROR]", e);
+            }
+        }
+
+
+        /* ================= REFRESH QUEUE LIST ================= */
+        async function loadSongs() {
+            try {
+                const res = await fetch("/songs");
+                const data = await res.json();
+                const list = document.getElementById("queueList");
+
+                list.innerHTML = "";
+
+                if (data.length === 0) {
+                    list.innerHTML = "<li style='text-align:center; color:#666; font-style:italic; justify-content:center;'>The queue is empty. Scan the QR code to request songs!</li>";
+                    return;
+                }
+
+                data.forEach(song => {
+
+                    const li = document.createElement("li");
+
+                    li.innerHTML = `
+        <img 
+            src="${song.image}" 
+            width="50" 
+            height="50"
+            style="
+                border-radius:8px;
+                margin-right:12px;
+                vertical-align:middle;
+            "
+        >
+
+        <span>
+            ${song.name}<br>
+            <small>${song.artist}</small>
+        </span>
+    `;
+
+                    list.appendChild(li);
+
+                });
+            } catch (e) {
+                console.error("[QUEUE UI ERROR]", e);
+            }
+        }
+
+        /* ================= BACKGROUND TIMERS ================= */
+        setInterval(loadSongs, 3000);        // Every 3 seconds
+        setInterval(updateNowPlaying, 2000); // Every 2 seconds
+
+        loadSongs();
+        updateNowPlaying();
+    </script>
+</body>
+
+</html>

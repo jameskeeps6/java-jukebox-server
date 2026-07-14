@@ -1,79 +1,314 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
     <title>Add Song - Jukebox</title>
 
     <style>
-        /*Same dark theme as TV screen */
+        :root {
+            --bg-color: #0c0c0e;
+            --card-bg: #18181c;
+            --spotify-green: #1DB954;
+            --text-main: #ffffff;
+            --text-muted: #a7a7a7;
+            --border-color: #292932;
+        }
+
+
         body {
-            background-color: black;
-            color: white;
-            font-family: Arial;
-            text-align: center;
-            margin-top: 120px;
+
+            background-color: var(--bg-color);
+            color: var(--text-main);
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                Roboto,
+                "Segoe UI",
+                Helvetica,
+                Arial,
+                sans-serif;
+
+            margin: 0;
+            padding: 40px 20px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            min-height: 100vh;
+
+            box-sizing: border-box;
         }
 
-        /*Title styling */
+
+        .container {
+
+            width: 100%;
+            max-width: 500px;
+
+        }
+
+
         h1 {
-            font-size: 50px;
-            color: #00ffcc;
+
+            text-align: center;
+
+            font-size: 2.2rem;
+            font-weight: 800;
+
+            margin-bottom: 30px;
+
+            letter-spacing: -0.03em;
+
+            background:
+                linear-gradient(135deg,
+                    #ffffff,
+                    #a7a7a7);
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+
         }
 
-        /*Input box styling */
+
+
+        .card {
+
+            background: var(--card-bg);
+
+            border:
+                1px solid var(--border-color);
+
+            border-radius: 16px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 8px 24px rgba(0, 0, 0, 0.5);
+
+        }
+
+
+
+        .title {
+
+            color: var(--text-muted);
+
+            font-size: .85rem;
+
+            text-transform: uppercase;
+
+            letter-spacing: .1em;
+
+            font-weight: 700;
+
+            margin-bottom: 15px;
+
+            text-align: center;
+
+        }
+
+
+
         input {
-            font-size: 25px;
-            padding: 12px;
-            width: 300px;
-            border-radius: 10px;
-            border: none;
+
+            width: 100%;
+
+            box-sizing: border-box;
+
+            background: #0f0f12;
+
+            color: white;
+
+            border:
+
+                1px solid var(--border-color);
+
+
+            border-radius: 12px;
+
+            padding: 15px;
+
+            font-size: 18px;
+
             outline: none;
+
+            transition: .2s;
+
         }
 
-        /*Button styling */
-        button {
-            font-size: 25px;
-            padding: 12px 20px;
-            margin-left: 10px;
-            border-radius: 10px;
-            border: none;
-            background-color: #ffcc00;
-            cursor: pointer;
+
+
+        input:focus {
+
+            border-color: var(--spotify-green);
+
         }
+
+
+
+        input::placeholder {
+
+            color: #777;
+
+        }
+
+
+
+        button {
+
+            width: 100%;
+
+            margin-top: 15px;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: var(--spotify-green);
+
+            color: white;
+
+            font-size: 18px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: .2s;
+
+        }
+
+
 
         button:hover {
-            background-color: #ffaa00;
+
+            transform: translateY(-2px);
+
+            filter: brightness(1.1);
+
         }
 
-        /*small helper text */
-        p {
-            color: #888;
+
+
+        .links {
+
+            text-align: center;
+
             margin-top: 20px;
+
+        }
+
+
+
+        a {
+
+            color: var(--spotify-green);
+
+            text-decoration: none;
+
+            font-weight: 600;
+
+        }
+
+
+
+        a:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+
+        p {
+
+            color: var(--text-muted);
+
+            font-size: 14px;
+
         }
     </style>
 
 </head>
 
+
 <body>
 
-    <!-- Page title -->
-    <h1>Add a Song</h1>
 
-    <!--Song input form -->
-    <form action="/add" method="get">
+    <div class="container">
 
-        <!-- user types song name here -->
-        <input type="text" name="song" placeholder="Enter song name" required>
 
-        <!-- submit button -->
-        <button type="submit">Add</button>
+        <h1>
+            Jukebox Request
+        </h1>
 
-    </form>
 
-    <!-- hint text -->
-    <p><a href="/queue" style="color:#00ffcc;">View Queue</a></p>
-    <p>Scan QR or open this page to add songs to the queue</p>
+        <div class="card">
+
+
+            <div class="title">
+                Add a song to queue
+            </div>
+
+
+
+            <form action="/submitAdd" method="get">
+
+
+                <input type="text" name="song" placeholder="Search Spotify..." required>
+
+
+                <button type="submit">
+
+                    Add Song
+
+                </button>
+
+
+            </form>
+
+
+
+            <div class="links">
+
+
+                <p>
+
+                    <a href="/queue">
+
+                        View Queue
+
+                    </a>
+
+                </p>
+
+
+                <p>
+
+                    <a href="/">
+
+                        Back to Player
+
+                    </a>
+
+                </p>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
 
 </body>
+
 
 </html>

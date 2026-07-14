@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            margin: 15px auto;
+            padding: 15px;
+        }
+
+        button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            background: #1db954;
+            /* Default green for Play */
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 120px;
+            transition: background 0.2s ease;
+        }
+
+        a {
+            color: #1db954;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Admin Panel</h1>
+
+    <p id="loginState">Checking login...</p>
+
+    <p>
+        <a href="/spotify/login">Login to Spotify</a>
+    </p>
+
+    <div class="card">
+        <div id="currentSong">Nothing playing</div>
+    </div>
+
+    <div class="card">
+        <button onclick="togglePlay()">Play</button>
+        <button onclick="skipSong()" style="background: #d62828;">Skip</button>
+    </div>
+
+    <div class="card">
+        <ol id="queueList"></ol>
+    </div>
+
+    <script>
+        let token = null;
+
+        /* ================= TOKEN ================= */
+        fetch('/token')
+            .then(r => r.text())
+            .then(t => {
+                token = (t && t !== "NO_TOKEN_AVAILABLE") ? t.trim() : null;
+
+                document.getElementById("loginState").innerText =
+                    token ? "Logged in" : "Not logged in";
+
+                updateNowPlaying();
+                loadSongs();
+            });
+
+
+        /* ================= PLAY BUTTON ================= */
+        let queueStarted = false;
+        async function togglePlay() {
+
+            if (!token) {
+                alert("Not logged into Spotify.");
+                return;
+            }
+
+            const state = await getPlayerState();
+
+            // Fresh Spotify session: nothing loaded -> start queue
+            if (!state || !state.item) {
+
+                console.log("[PLAY] No active track. Starting queue.");
+
+                const res = await fetch("/playNext");
+
+                if (!res.ok) {
+                    alert(await res.text());
+                    return;
+                }
+
+                loadSongs();
+                setTimeout(updateNowPlaying, 1000);
+                return;
+            }
+
+
+            // Existing song paused -> resume
+            if (!state.is_playing) {
+
+                console.log("[PLAY] Resuming current song.");
+
+                await fetch(
+                    "https://api.spotify.com/v1/me/player/play",
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                setTimeout(updateNowPlaying, 500);
+                return;
+            }
+
+
+            // Existing song playing -> pause
+            console.log("[PLAY] Pausing current song.");
+
+            await fetch(
+                "https://api.spotify.com/v1/me/player/pause",
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                }
+            );
+
+            setTimeout(updateNowPlaying, 500);
+        }
+
+        async function getPlayerState() {
+
+            try {
+
+                const res = await fetch(
+                    "https://api.spotify.com/v1/me/player",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                if (res.status !== 200) {
+                    return null;
+                }
+
+                return await res.json();
+
+            } catch (e) {
+
+                console.error(e);
+                return null;
+            }
+        }
+
+
+        /* ================= SKIP ================= */
+        async function skipSong() {
+
+            console.log("[ADMIN] Skip pressed");
+
+            const res = await fetch("/skip");
+
+            const text = await res.text();
+
+            console.log("[SKIP RESPONSE]", text);
+
+            // Give Spotify time to switch tracks
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            loadSongs();
+            updateNowPlaying();
+        }
+
+
+        /* ================= NOW PLAYING ================= */
+        async function updateNowPlaying() {
+
+            if (!token) return;
+
+            try {
+
+                const res = await fetch(
+                    "https://api.spotify.com/v1/me/player",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+
+                const button =
+                    document.querySelector("button[onclick='togglePlay()']");
+
+
+                if (res.status !== 200) {
+
+                    document.getElementById("currentSong").innerText =
+                        "Nothing playing";
+
+                    button.innerText = "Play";
+                    return;
+                }
+
+
+                const state = await res.json();
+
+
+                if (state.is_playing) {
+
+                    button.innerText = "Pause";
+                    button.style.background = "#e63946";
+
+                } else {
+
+                    button.innerText = "Play";
+                    button.style.background = "#1db954";
+                }
+
+
+                if (state.item) {
+
+                    document.getElementById("currentSong").innerText =
+                        state.item.name +
+                        " - " +
+                        state.item.artists
+                            .map(a => a.name)
+                            .join(", ");
+
+                } else {
+
+                    document.getElementById("currentSong").innerText =
+                        "Nothing playing";
+                }
+
+
+            } catch (e) {
+
+                console.error(e);
+
+            }
+        }
+
+
+        /* ================= QUEUE ================= */
+        async function loadSongs() {
+
+            try {
+
+                const data =
+                    await fetch("/songs")
+                        .then(r => r.json());
+
+
+                const list =
+                    document.getElementById("queueList");
+
+
+                list.innerHTML = "";
+
+
+                data.forEach(song => {
+
+                    const li = document.createElement("li");
+
+                    li.textContent =
+                        song.name +
+                        " - " +
+                        song.artist;
+
+                    list.appendChild(li);
+
+                });
+
+
+            } catch (e) {
+
+                console.error(e);
+
+            }
+        }
+
+
+        setInterval(loadSongs, 3000);
+        setInterval(updateNowPlaying, 2000);
+
+    </script>
+
+</body>
+
+</html>
